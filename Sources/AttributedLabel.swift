@@ -8,18 +8,16 @@ import Foundation
     
 import UIKit
 
-public class AttributedLabel: UIView {
+public class AttributedLabel: UILabel {
     
     //MARK: - private properties
-    private let label = UILabel()
-    private var detectionAreaButtons = [DetectionAreaButton]()
+    private var interactiveAreas = [(CGRect, Detection)]()
     
     //MARK: - public properties
-    public var onClick: ((AttributedLabel, Detection)->Void)?
+    public var br_onClick: ((AttributedLabel, Detection)->Void)?
     
-    public var isEnabled: Bool {
+    public var br_isEnabled: Bool {
         set {
-            detectionAreaButtons.forEach { $0.isUserInteractionEnabled = newValue  }
             state.isEnabled = newValue
         }
         get {
@@ -27,7 +25,7 @@ public class AttributedLabel: UIView {
         }
     }
     
-    public var attributedText: AttributedText? {
+    public var br_attributedText: AttributedText? {
         set {
             state.attributedTextAndString = newValue.map { ($0, $0.attributedString) }
             setNeedsLayout()
@@ -35,42 +33,6 @@ public class AttributedLabel: UIView {
         get {
             return state.attributedTextAndString?.0
         }
-    }
-    
-    //MARK: - public properties redirected to underlying UILabel
-    public var font: UIFont {
-        set { label.font = newValue }
-        get { return label.font }
-    }
-    
-    public var numberOfLines: Int {
-        set { label.numberOfLines = newValue }
-        get { return label.numberOfLines }
-    }
-    
-    public var textAlignment: NSTextAlignment {
-        set { label.textAlignment = newValue }
-        get { return label.textAlignment }
-    }
-    
-    public var lineBreakMode: NSLineBreakMode {
-        set { label.lineBreakMode = newValue }
-        get { return label.lineBreakMode }
-    }
-    
-    public var textColor: UIColor {
-        set { label.textColor = newValue }
-        get { return label.textColor }
-    }
-    
-    public var shadowColor: UIColor? {
-        set { label.shadowColor = newValue }
-        get { return label.shadowColor }
-    }
-    
-    public var shadowOffset: CGSize {
-        set { label.shadowOffset = newValue }
-        get { return label.shadowOffset }
     }
     
     //MARK: - init
@@ -85,20 +47,15 @@ public class AttributedLabel: UIView {
     }
     
     private func commonInit() {
-        addSubview(label)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleDetectionAreaTap(_:)))
+        self.addGestureRecognizer(tap)
     }
     
     //MARK: - overrides
     public override func layoutSubviews() {
         super.layoutSubviews()
         
-        label.frame = bounds
-        
-        detectionAreaButtons.forEach {
-            $0.removeFromSuperview()
-        }
-        
-        detectionAreaButtons.removeAll()
+        interactiveAreas.removeAll()
         
         if let (text, string) = state.attributedTextAndString {
             
@@ -125,55 +82,20 @@ public class AttributedLabel: UIView {
                 layoutManager.enumerateEnclosingRects(forGlyphRange: nsrange, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: textContainer, using: { (rect, stop) in
                     var finalRect = rect
                     finalRect.origin.y += dy
-                    self.addDetectionAreaButton(frame: finalRect, detection: detection)
+                    self.interactiveAreas.append((finalRect, detection))
                 })
             }
         }
     }
     
-    public override func sizeThatFits(_ size: CGSize) -> CGSize {
-        return label.sizeThatFits(size)
-    }
-
-    //MARK: - DetectionAreaButton
-    private class DetectionAreaButton: UIControl {
-        
-        var onHighlightChanged: ((DetectionAreaButton)->Void)?
-        
-        let detection: Detection
-        init(detection: Detection) {
-            self.detection = detection
-            super.init(frame: .zero)
-            self.isExclusiveTouch = true
-        }
-        
-        override var isHighlighted: Bool {
-            didSet {
-                onHighlightChanged?(self)
+    @objc private func handleDetectionAreaTap(_ sender: UITapGestureRecognizer) {
+        for area in interactiveAreas {
+            let isInteractiveArea = area.0.contains(sender.location(in: self))
+            if isInteractiveArea {
+                br_onClick?(self, area.1)
+                break
             }
         }
-        
-        required init?(coder aDecoder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
-    }
-    
-    private func addDetectionAreaButton(frame: CGRect, detection: Detection) {
-        let button = DetectionAreaButton(detection: detection)
-        button.isUserInteractionEnabled = state.isEnabled
-        button.addTarget(self, action: #selector(handleDetectionAreaButtonClick), for: .touchUpInside)
-        detectionAreaButtons.append(button)
-        
-        button.onHighlightChanged = { [weak self] in
-            self?.state.detection = $0.isHighlighted ? $0.detection : nil
-        }
-        
-        addSubview(button)
-        button.frame = frame
-    }
-    
-    @objc private func handleDetectionAreaButtonClick(_ sender: DetectionAreaButton) {
-        onClick?(self, sender.detection)
     }
     
     //MARK: - state
@@ -186,26 +108,26 @@ public class AttributedLabel: UIView {
     
     private var state: State = State(attributedTextAndString: nil, isEnabled: true, detection: nil) {
         didSet {
-            updateLabel()
+            update()
         }
     }
     
-    private func updateLabel() {
+    private func update() {
         if let (text, string) = state.attributedTextAndString {
             
             if let detection = state.detection {
                 let higlightedAttributedString = NSMutableAttributedString(attributedString: string)
                 higlightedAttributedString.addAttributes(detection.style.highlightedAttributes, range: NSRange(detection.range, in: string.string))
-                label.attributedText = higlightedAttributedString
+                attributedText = higlightedAttributedString
             } else {
                 if state.isEnabled {
-                    label.attributedText = string
+                    attributedText = string
                 } else {
-                    label.attributedText = text.disabledAttributedString
+                    attributedText = text.disabledAttributedString
                 }
             }
         } else {
-            label.attributedText = nil
+            attributedText = nil
         }
     }
 }
@@ -229,5 +151,7 @@ extension NSAttributedString {
         return result
     }
 }
-
+    
 #endif
+
+
