@@ -219,16 +219,48 @@ class AtributikaTests: XCTestCase {
         XCTAssertEqual(test, reference)
     }
     
-    func testDataDetector() {
+    func testDataDetectorPhoneRaw() {
         
-        let types: NSTextCheckingResult.CheckingType = [.phoneNumber]
-        
-        let test = "Call me (888)555-5512".style(textCheckingTypes: types.rawValue,
+        let test = "Call me (888)555-5512".style(textCheckingTypes: [.phoneNumber],
                                                   style: Style.font(.boldSystemFont(ofSize: 45)))
             .attributedString
         
         let reference = NSMutableAttributedString(string: "Call me (888)555-5512")
         reference.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSMakeRange(8, 13))
+        
+        XCTAssertEqual(test, reference)
+    }
+    
+    func testDataDetectorLinkRaw() {
+        
+        let test = "Check this http://google.com".style(textCheckingTypes: [.link],
+                                                 style: Style.font(.boldSystemFont(ofSize: 45)))
+            .attributedString
+        
+        let reference = NSMutableAttributedString(string: "Check this http://google.com")
+        reference.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSMakeRange(11, 17))
+        
+        XCTAssertEqual(test, reference)
+    }
+    
+    func testDataDetectorPhone() {
+        
+        let test = "Call me (888)555-5512".stylePhoneNumbers(Style.font(.boldSystemFont(ofSize: 45)))
+            .attributedString
+        
+        let reference = NSMutableAttributedString(string: "Call me (888)555-5512")
+        reference.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSMakeRange(8, 13))
+        
+        XCTAssertEqual(test, reference)
+    }
+    
+    func testDataDetectorLink() {
+        
+        let test = "Check this http://google.com".styleLinks(Style.font(.boldSystemFont(ofSize: 45)))
+            .attributedString
+        
+        let reference = NSMutableAttributedString(string: "Check this http://google.com")
+        reference.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSMakeRange(11, 17))
         
         XCTAssertEqual(test, reference)
     }
@@ -307,6 +339,30 @@ class AtributikaTests: XCTestCase {
         XCTAssertEqual(test,reference)
     }
     
+    
+    func testOL() {
+        var counter = 0
+        let transformers: [TagTransformer] = [
+            TagTransformer.brTransformer,
+            TagTransformer(tagName: "ol", tagType: .start) { _ in
+                counter = 0
+                return ""
+            },
+            TagTransformer(tagName: "li", tagType: .start) { _ in
+                counter += 1
+                return "\(counter). "
+            },
+            TagTransformer(tagName: "li", tagType: .end) { _ in
+                return "\n"
+            }
+        ]
+        
+        let test = "<div><ol type=\"\"><li>Coffee</li><li>Tea</li><li>Milk</li></ol><ol type=\"\"><li>Coffee</li><li>Tea</li><li>Milk</li></ol></div>".style(tags: [], transformers: transformers).string
+        let reference = "1. Coffee\n2. Tea\n3. Milk\n1. Coffee\n2. Tea\n3. Milk\n"
+        
+        XCTAssertEqual(test,reference)
+    }
+    
     func testStyleBuilder() {
         
         let s = Style
@@ -361,6 +417,18 @@ class AtributikaTests: XCTestCase {
         reference3.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSRange(reference3.string.range(of: "Hello World")!, in: reference3.string) )
         
         XCTAssertEqual(test, reference3)
+    }
+    
+    func testTagAttributes() {
+        let test = "Hello <a class=\"big\" target=\"\" href=\"http://foo.com\">world</a>!"
+        
+        let (string, tags) = test.detectTags()
+        
+        
+        XCTAssertEqual(string, "Hello world!")
+        XCTAssertEqual(tags[0].tag.attributes["class"], "big")
+        XCTAssertEqual(tags[0].tag.attributes["target"], "")
+        XCTAssertEqual(tags[0].tag.attributes["href"], "http://foo.com")
     }
 }
 

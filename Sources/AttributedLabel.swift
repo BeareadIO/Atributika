@@ -11,13 +11,14 @@ import UIKit
 public class AttributedLabel: UILabel {
     
     //MARK: - private properties
-    private var interactiveAreas = [(CGRect, Detection)]()
+    private var detectionAreaButtons = [DetectionAreaButton]()
     
     //MARK: - public properties
     public var br_onClick: ((AttributedLabel, Detection)->Void)?
     
     public var br_isEnabled: Bool {
         set {
+            detectionAreaButtons.forEach { $0.isUserInteractionEnabled = newValue  }
             state.isEnabled = newValue
         }
         get {
@@ -47,15 +48,19 @@ public class AttributedLabel: UILabel {
     }
     
     private func commonInit() {
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleDetectionAreaTap(_:)))
-        self.addGestureRecognizer(tap)
+        translatesAutoresizingMaskIntoConstraints = false
+        isUserInteractionEnabled = true
     }
     
     //MARK: - overrides
-    public override func layoutSubviews() {
+    open override func layoutSubviews() {
         super.layoutSubviews()
         
-        interactiveAreas.removeAll()
+        detectionAreaButtons.forEach {
+            $0.removeFromSuperview()
+        }
+        
+        detectionAreaButtons.removeAll()
         
         if let (text, string) = state.attributedTextAndString {
             
@@ -82,20 +87,56 @@ public class AttributedLabel: UILabel {
                 layoutManager.enumerateEnclosingRects(forGlyphRange: nsrange, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: textContainer, using: { (rect, stop) in
                     var finalRect = rect
                     finalRect.origin.y += dy
-                    self.interactiveAreas.append((finalRect, detection))
+                    self.addDetectionAreaButton(frame: finalRect, detection: detection, text: String(inheritedString.string[detection.range]))
                 })
             }
         }
     }
     
-    @objc private func handleDetectionAreaTap(_ sender: UITapGestureRecognizer) {
-        for area in interactiveAreas {
-            let isInteractiveArea = area.0.contains(sender.location(in: self))
-            if isInteractiveArea {
-                br_onClick?(self, area.1)
-                break
+    //MARK: - DetectionAreaButton
+    private class DetectionAreaButton: UIControl {
+        
+        var onHighlightChanged: ((DetectionAreaButton)->Void)?
+        
+        let detection: Detection
+        init(detection: Detection) {
+            self.detection = detection
+            super.init(frame: .zero)
+            self.isExclusiveTouch = true
+        }
+        
+        override var isHighlighted: Bool {
+            didSet {
+                if (isHighlighted && isTracking) || !isHighlighted {
+                    onHighlightChanged?(self)
+                }
             }
         }
+        
+        required init?(coder aDecoder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+    }
+    
+    private func addDetectionAreaButton(frame: CGRect, detection: Detection, text: String) {
+        let button = DetectionAreaButton(detection: detection)
+        button.accessibilityLabel = text
+        button.isAccessibilityElement = true
+        button.accessibilityTraits = UIAccessibilityTraitButton
+        button.isUserInteractionEnabled = state.isEnabled
+        button.addTarget(self, action: #selector(handleDetectionAreaButtonClick), for: .touchUpInside)
+        detectionAreaButtons.append(button)
+        
+        button.onHighlightChanged = { [weak self] in
+            self?.state.detection = $0.isHighlighted ? $0.detection : nil
+        }
+        
+        addSubview(button)
+        button.frame = frame
+    }
+    
+    @objc private func handleDetectionAreaButtonClick(_ sender: DetectionAreaButton) {
+        br_onClick?(self, sender.detection)
     }
     
     //MARK: - state
@@ -134,7 +175,7 @@ public class AttributedLabel: UILabel {
 
 extension NSAttributedString {
     
-    func withInherited(font: UIFont, textAlignment: NSTextAlignment) -> NSAttributedString {
+    fileprivate func withInherited(font: UIFont, textAlignment: NSTextAlignment) -> NSAttributedString {
         
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = textAlignment
