@@ -100,7 +100,7 @@ extension String {
         
         while !scanner.isAtEnd {
             
-            if let textString = scanner.scanUpToCharacters(from: CharacterSet(charactersIn: "<&")) {
+            if let textString = scanner.scanUpToCharacters(from: CharacterSet(charactersIn: "<")) {
                 resultString += textString
             } else {
                 if scanner.scanString("<") != nil {
@@ -130,13 +130,6 @@ extension String {
                             }
                         }
                         scanner.scanString(">")
-                    }
-                } else if scanner.scanString("&") != nil {
-                    if let specialString = scanner.scanUpTo(";") {
-                        if let spec = String.specials[specialString] {
-                            resultString += spec
-                        }
-                        scanner.scanString(";")
                     }
                 }
             }
