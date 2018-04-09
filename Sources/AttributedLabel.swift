@@ -113,6 +113,15 @@ public class AttributedLabel: UILabel {
             }
         }
         
+        override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            if let tapGestureRecognizer = gestureRecognizer as? UITapGestureRecognizer {
+                if tapGestureRecognizer.numberOfTapsRequired == 1 && tapGestureRecognizer.numberOfTouchesRequired == 1 {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
         required init?(coder aDecoder: NSCoder) {
             fatalError("init(coder:) has not been implemented")
         }
