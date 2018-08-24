@@ -183,7 +183,7 @@ class AtributikaTests: XCTestCase {
         
         let test = "Hello <World!!!".style(tags: Style("b").font(.boldSystemFont(ofSize: 45))).attributedString
         
-        let reference = NSMutableAttributedString(string: "Hello ")
+        let reference = NSMutableAttributedString(string: "Hello <World!!!")
         
         XCTAssertEqual(test, reference)
     }
@@ -430,7 +430,113 @@ class AtributikaTests: XCTestCase {
         XCTAssertEqual(tags[0].tag.attributes["target"], "")
         XCTAssertEqual(tags[0].tag.attributes["href"], "http://foo.com")
     }
+    
+    func testTagAttributesWithSingleQuote() {
+        let test = "Hello <a class='big' target='' href=\"http://foo.com\">world</a>!"
+        
+        let (string, tags) = test.detectTags()
+        
+        
+        XCTAssertEqual(string, "Hello world!")
+        XCTAssertEqual(tags[0].tag.attributes["class"], "big")
+        XCTAssertEqual(tags[0].tag.attributes["target"], "")
+        XCTAssertEqual(tags[0].tag.attributes["href"], "http://foo.com")
+    }
+    
+    func testSpecials() {
+        XCTAssertEqual("Hello&amp;World!!!".detectTags().string , "Hello&World!!!")
+        XCTAssertEqual("Hello&".detectTags().string , "Hello&")
+        XCTAssertEqual("Hello&World".detectTags().string , "Hello&World")
+        XCTAssertEqual("&quot;Quote&quot;".detectTags().string , "\"Quote\"")
+        XCTAssertEqual("&".detectTags().string , "&")
+        XCTAssertEqual("&&amp;".detectTags().string , "&&")
+        XCTAssertEqual("4>5".detectTags().string , "4>5")
+        XCTAssertEqual("4<5".detectTags().string , "4<5")
+        XCTAssertEqual("<".detectTags().string , "<")
+        XCTAssertEqual(">".detectTags().string , ">")
+        XCTAssertEqual("<a".detectTags().string , "<a")
+        XCTAssertEqual("<a>".detectTags().string , "")
+        XCTAssertEqual("< a>".detectTags().string , "< a>")
+    }
+    
+    func testCaseInsensitive1() {
+        
+        let test = "<B>Hello World</B>!!!".style(tags: Style("b").font(.boldSystemFont(ofSize: 45)))
+            .styleAll(.font(.systemFont(ofSize: 12)))
+            .attributedString
+        
+        let reference = NSMutableAttributedString(string: "Hello World!!!")
+        reference.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSMakeRange(0, 11))
+        reference.addAttributes([NSAttributedStringKey.font: Font.systemFont(ofSize: 12)], range: NSMakeRange(11, 3))
+        
+        XCTAssertEqual(test,reference)
+        
+    }
+    
+    func testCaseInsensitive2() {
+        
+        let test = "<B>Hello World</b>!!!".style(tags: Style("B").font(.boldSystemFont(ofSize: 45)))
+            .styleAll(.font(.systemFont(ofSize: 12)))
+            .attributedString
+        
+        let reference = NSMutableAttributedString(string: "Hello World!!!")
+        reference.addAttributes([NSAttributedStringKey.font: Font.boldSystemFont(ofSize: 45)], range: NSMakeRange(0, 11))
+        reference.addAttributes([NSAttributedStringKey.font: Font.systemFont(ofSize: 12)], range: NSMakeRange(11, 3))
+        
+        XCTAssertEqual(test,reference)
+        
+    }
+    
+    func testCaseInsensitiveBr() {
+        let test = "Hello<BR>World!!!".style(tags: []).attributedString
+        
+        let reference = NSMutableAttributedString(string: "Hello\nWorld!!!")
+        
+        XCTAssertEqual(test, reference)
+    }
+    
+    func testTuner() {
+        
+        func hexStringToUIColor (hex:String) -> UIColor {
+            var cString:String = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            
+            if (cString.hasPrefix("#")) {
+                cString.remove(at: cString.startIndex)
+            }
+            
+            if ((cString.count) != 6) {
+                return UIColor.gray
+            }
+            
+            var rgbValue:UInt32 = 0
+            Scanner(string: cString).scanHexInt32(&rgbValue)
+            
+            return UIColor(
+                red: CGFloat((rgbValue & 0xFF0000) >> 16) / 255.0,
+                green: CGFloat((rgbValue & 0x00FF00) >> 8) / 255.0,
+                blue: CGFloat(rgbValue & 0x0000FF) / 255.0,
+                alpha: CGFloat(1.0)
+            )
+        }
+        
+        let font = Style("font")
+        
+        let test = "Monday - Friday:<font color=\"#6cc299\"> 8:00 - 19:00</font>".style(tags: font, tuner: { style, tag in
+            if tag.name == font.name {
+                if let colorString = tag.attributes["color"] {
+                    return style.foregroundColor(hexStringToUIColor(hex: colorString))
+                }
+            }
+            return style
+        }).attributedString
+        
+        let reference = NSMutableAttributedString(string: "Monday - Friday: 8:00 - 19:00")
+        reference.addAttributes([NSAttributedStringKey.foregroundColor: hexStringToUIColor(hex: "#6cc299")], range: NSMakeRange(16, 13))
+        XCTAssertEqual(test, reference)
+    }
 }
+
+
 
 
 #if os(Linux)
