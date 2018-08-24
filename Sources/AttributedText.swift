@@ -163,7 +163,7 @@ extension String: AttributedTextProtocol {
     }
     
     public func style(tags: [Style], transformers: [TagTransformer] = [TagTransformer.brTransformer], tuner: (Style, Tag) -> Style = { s, _ in return  s}) -> AttributedText {
-        let (string, tagsInfo) = detectTags(transformers: transformers)
+        let (string, tagsInfo) = detectTags(tags, transformers: transformers)
         
         var ds: [Detection] = []
         

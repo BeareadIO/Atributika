@@ -24,7 +24,7 @@ public enum TagType {
 }
 
 public struct TagTransformer {
-
+    
     public let tagName: String
     public let tagType: TagType
     public let transform: (Tag) -> String
@@ -95,7 +95,7 @@ extension String {
                                    "gt":">",
                                    "nbsp":" "] //just replacing it with space, not going to implement non-breaking logic
     
-    public func detectTags(transformers: [TagTransformer] = []) -> (string: String, tagsInfo: [TagInfo]) {
+    public func detectTags(_ tags: [Style] = [], transformers: [TagTransformer] = []) -> (string: String, tagsInfo: [TagInfo]) {
         
         let scanner = Scanner(string: self)
         scanner.charactersToBeSkipped = nil
@@ -114,7 +114,11 @@ extension String {
                         resultString += "<"
                     } else {
                         let nextChar = (scanner.string as NSString).substring(with: NSRange(location: scanner.scanLocation, length: 1))
-                        if CharacterSet.letters.contains(nextChar.unicodeScalars.first!) || (nextChar == "/") {
+                        let allTagNames = tags.map { $0.name } + transformers.map { $0.tagName }
+                        let markupEndCharReg = try! NSRegularExpression(pattern: "^\\s*(\\S+?)[ >]")
+                        let result = markupEndCharReg.firstMatch(in: scanner.string, range: NSRange(location: scanner.scanLocation, length: scanner.string.utf16.count - scanner.scanLocation))
+                        
+                        if nextChar == "/" || (result != nil && allTagNames.contains((scanner.string as NSString).substring(with: result!.range(at: 1)))) {
                             let tagType = scanner.scanString("/") == nil ? TagType.start : TagType.end
                             if let tagString = scanner.scanUpTo(">") {
                                 
