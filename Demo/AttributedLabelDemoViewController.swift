@@ -2,6 +2,7 @@
 //  Created by Pavel Sharanda on 02.03.17.
 //  Copyright © 2017 Pavel Sharanda. All rights reserved.
 //
+
 import UIKit
 import Atributika
 
@@ -73,23 +74,26 @@ class TweetCell: UITableViewCell {
     
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-
+        
         tweetLabel.br_onClick = { label, detection in
-            print("====\(detection.type)")
-//            switch detection.type {
-//            case .hashtag(let tag):
-//                if let url = URL(string: "https://twitter.com/hashtag/\(tag)") {
-//                    UIApplication.shared.openURL(url)
-//                }
-//            case .mention(let name):
-//                if let url = URL(string: "https://twitter.com/\(name)") {
-//                    UIApplication.shared.openURL(url)
-//                }
-//            case .link(let url):
-//                UIApplication.shared.openURL(url)
-//            default:
-//                break
-//            }
+            switch detection.type {
+            case .hashtag(let tag):
+                if let url = URL(string: "https://twitter.com/hashtag/\(tag)") {
+                    UIApplication.shared.openURL(url)
+                }
+            case .mention(let name):
+                if let url = URL(string: "https://twitter.com/\(name)") {
+                    UIApplication.shared.openURL(url)
+                }
+            case .link(let url):
+                UIApplication.shared.openURL(url)
+            case .tag(let tag):
+                if tag.name == "a", let href = tag.attributes["href"], let url = URL(string: href) {
+                    UIApplication.shared.openURL(url)
+                }
+            default:
+                break
+            }
         }
         
         contentView.addSubview(tweetLabel)
@@ -116,6 +120,7 @@ class TweetCell: UITableViewCell {
                 .foregroundColor(.brown, .highlighted)
             
             tweetLabel.br_attributedText = tweet?
+                .style(tags: link)
                 .styleHashtags(link)
                 .styleMentions(link)
                 .styleLinks(link)
@@ -123,3 +128,6 @@ class TweetCell: UITableViewCell {
         }
     }
 }
+
+
+
