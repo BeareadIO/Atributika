@@ -66,7 +66,7 @@ public class AttributedLabel: UILabel {
             
             let inheritedString = string.withInherited(font: font, textAlignment: textAlignment)
             
-            let textContainer = NSTextContainer(size: bounds.size)
+            let textContainer = NSTextContainer(size: CGSize(width: bounds.size.width, height: bounds.size.height + 99))
             textContainer.lineBreakMode = lineBreakMode
             textContainer.maximumNumberOfLines = numberOfLines
             textContainer.lineFragmentPadding = 0
