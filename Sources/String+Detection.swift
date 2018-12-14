@@ -88,15 +88,7 @@ extension String {
         return Tag(name: tagName, attributes: attrubutes)
     }
     
-    private static let specials = ["quot":"\"",
-                                   "amp":"&",
-                                   "apos":"'",
-                                   "lt":"<",
-                                   "gt":">",
-                                   "nbsp":" "] //just replacing it with space, not going to implement non-breaking logic
-    
     public func detectTags(_ tags: [Style] = [], transformers: [TagTransformer] = []) -> (string: String, tagsInfo: [TagInfo]) {
-        
         let scanner = Scanner(string: self)
         scanner.charactersToBeSkipped = nil
         var resultString = String()
