@@ -83,11 +83,11 @@ public class AttributedLabel: UILabel {
             let usedRect = layoutManager.usedRect(for: textContainer)
             let dy = max(0, (bounds.height - usedRect.height)/2)
             highlightableDetections.forEach { detection in
-                let nsrange = NSRange(detection.range, in: inheritedString.string)
+                let nsrange = NSRange(detection.range, in: text.string)
                 layoutManager.enumerateEnclosingRects(forGlyphRange: nsrange, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: textContainer, using: { (rect, stop) in
                     var finalRect = rect
                     finalRect.origin.y += dy
-                    self.addDetectionAreaButton(frame: finalRect, detection: detection, text: String(inheritedString.string[detection.range]))
+                    self.addDetectionAreaButton(frame: finalRect, detection: detection, text: String(text.string[detection.range]))
                 })
             }
         }
@@ -172,7 +172,7 @@ public class AttributedLabel: UILabel {
             
             if let detection = state.detection {
                 let higlightedAttributedString = NSMutableAttributedString(attributedString: string)
-                higlightedAttributedString.addAttributes(detection.style.highlightedAttributes, range: NSRange(detection.range, in: string.string))
+                higlightedAttributedString.addAttributes(detection.style.highlightedAttributes, range: NSRange(detection.range, in: text.string))
                 attributedText = higlightedAttributedString
             } else {
                 if state.isEnabled {
