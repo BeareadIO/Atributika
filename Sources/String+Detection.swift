@@ -16,6 +16,7 @@ public struct Tag {
 public struct TagInfo {
     public let tag: Tag
     public let range: Range<String.Index>
+    public let level: Int
 }
 
 public enum TagType {
@@ -89,11 +90,19 @@ extension String {
     }
     
     public func detectTags(_ tags: [Style] = [], transformers: [TagTransformer] = []) -> (string: String, tagsInfo: [TagInfo]) {
+        
+        struct TagInfoInternal {
+            public let tag: Tag
+            public let rangeStart: Int
+            public let rangeEnd: Int
+            public let level: Int
+        }
+        
         let scanner = Scanner(string: self)
         scanner.charactersToBeSkipped = nil
         var resultString = String()
-        var tagsResult = [TagInfo]()
-        var tagsStack = [(Tag, String.Index)]()
+        var tagsResult = [TagInfoInternal]()
+        var tagsStack = [(Tag, Int, Int)]()
         
         while !scanner.isAtEnd {
             
@@ -117,7 +126,7 @@ extension String {
                                 if scanner.scanString(">") != nil {
                                     if let tag = parseTag(tagString, parseAttributes: tagType == .start ) {
                                         
-                                        let resultTextEndIndex = resultString.endIndex
+                                        let resultTextEndIndex = resultString.count
                                         
                                         if let transformer = transformers.first(where: {
                                             $0.tagName.lowercased() == tag.name.lowercased() && $0.tagType == tagType
@@ -126,11 +135,11 @@ extension String {
                                         }
                                         
                                         if tagType == .start {
-                                            tagsStack.append((tag, resultTextEndIndex))
+                                            tagsStack.append((tag, resultTextEndIndex, (tagsStack.last?.2 ?? -1) + 1))
                                         } else {
-                                            for (index, (tagInStack, startIndex)) in tagsStack.enumerated().reversed() {
+                                            for (index, (tagInStack, startIndex, level)) in tagsStack.enumerated().reversed() {
                                                 if tagInStack.name.lowercased() == tag.name.lowercased() {
-                                                    tagsResult.append(TagInfo(tag: tagInStack, range: startIndex..<resultTextEndIndex))
+                                                    tagsResult.append(TagInfoInternal(tag: tagInStack, rangeStart: startIndex, rangeEnd: resultTextEndIndex, level: level))
                                                     tagsStack.remove(at: index)
                                                     break
                                                 }
@@ -150,7 +159,7 @@ extension String {
             }
         }
         
-        return (resultString, tagsResult)
+        return (resultString, tagsResult.map { TagInfo(tag: $0.tag, range: resultString.index(resultString.startIndex, offsetBy: $0.rangeStart)..<resultString.index(resultString.startIndex, offsetBy: $0.rangeEnd), level: $0.level) })
     }
     
     public func detectHashTags() -> [Range<String.Index>] {
