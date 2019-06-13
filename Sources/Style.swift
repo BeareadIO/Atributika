@@ -288,6 +288,6 @@ public struct Style {
     }
     
     public static func elementAttributes(type: StyleType = .normal) -> Style {
-        return Style("", [AttributedStringKey.writingDirection: [:]], type)
+        return Style("", [AttributedStringKey.elementAttributes: [:]], type)
     }
 }
