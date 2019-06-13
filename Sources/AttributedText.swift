@@ -58,7 +58,10 @@ extension AttributedTextProtocol {
         }
         
         for d in sortedDetections {
-            let attrs = getAttributes(d.style)
+            var attrs = getAttributes(d.style)
+            if case let .tag(tag) = d.type, attrs[.elementAttributes] != nil {
+                attrs[.elementAttributes] = tag.attributes
+            }
             if attrs.count > 0 {
                 attributedString.addAttributes(attrs, range: NSRange(d.range, in: string))
             }
@@ -206,4 +209,8 @@ extension NSAttributedString: AttributedTextProtocol {
     public var baseStyle: Style {
         return Style()
     }
+}
+
+extension NSAttributedString.Key {
+    public static let elementAttributes: NSAttributedString.Key = NSAttributedString.Key("elementAttributes")
 }

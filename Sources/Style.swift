@@ -195,6 +195,9 @@ public struct Style {
         return merged(with: Style.writingDirection(value, type))
     }
     
+    public func elementAttributes(type: StyleType = .normal) -> Style {
+        return merged(with: Style.elementAttributes())
+    }
     
     public static func font(_ value: Font, _ type: StyleType = .normal) -> Style {
         return Style("", [AttributedStringKey.font: value], type)
@@ -282,5 +285,9 @@ public struct Style {
     
     public static func writingDirection(_ value: NSWritingDirection, _ type: StyleType = .normal) -> Style {
         return Style("", [AttributedStringKey.writingDirection: value.rawValue], type)
+    }
+    
+    public static func elementAttributes(type: StyleType = .normal) -> Style {
+        return Style("", [AttributedStringKey.writingDirection: [:]], type)
     }
 }
